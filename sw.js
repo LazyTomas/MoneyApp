@@ -1,5 +1,5 @@
 // הכסף שלי – service worker: keeps the app working offline.
-const V = 'hakesef-v3';
+const V = 'hakesef-v4';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-180.png', './icon-512.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(V).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));

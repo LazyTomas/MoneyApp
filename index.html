@@ -192,6 +192,28 @@ select.field{appearance:none;-webkit-appearance:none;text-align:start;color:var(
 @keyframes shake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
 @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
 .hidden{display:none!important}
+#pager{touch-action:pan-y;will-change:transform}
+h1 #plabel{display:inline-flex;align-items:center;gap:6px;font:inherit;letter-spacing:inherit}
+h1 #plabel svg.i{width:18px;height:18px;color:var(--tint);stroke-width:2.4;margin-top:4px}
+.ynav{display:flex;align-items:center;justify-content:space-between;margin:2px 0 12px}
+.ynav b{font-size:22px;font-weight:700}
+.ynav button{color:var(--tint);font-size:24px;width:44px;height:44px;display:grid;place-items:center}
+.mgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.mgrid button{background:var(--fill);border-radius:12px;padding:12px 6px 10px;display:flex;flex-direction:column;align-items:center;gap:3px}
+.mgrid .mn{font-weight:600}
+.mgrid .ma{font-size:12px;color:var(--muted);direction:ltr;font-variant-numeric:tabular-nums}
+.mgrid button.now{box-shadow:inset 0 0 0 1.5px var(--tint)}
+.mgrid button[aria-current="true"]{background:var(--tint);color:#fff}
+.mgrid button[aria-current="true"] .ma{color:rgba(255,255,255,.85)}
+.ylist .row .val{direction:ltr}
+.rrow{padding-top:8px;padding-bottom:8px;--inset:58px}
+.rrow .mid{flex:1;min-width:0;display:flex;flex-direction:column}
+.rrow .t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rrow .s{font-size:13px;color:var(--muted)}
+.rrow.paused .ic{opacity:.4}
+.addbtn{color:var(--tint);font-weight:600;font-size:15px}
+.tx .s svg.i{width:12px;height:12px;vertical-align:-1px;margin-inline-end:3px}
+.clr{color:var(--tint);font-size:15px;margin-inline-start:10px}
 /* lock */
 .lock,.cover{position:fixed;inset:0;z-index:100;background:var(--bg)}
 .cover{z-index:99}
@@ -219,17 +241,19 @@ select.field{appearance:none;-webkit-appearance:none;text-align:start;color:var(
 <main>
   <div class="navrow">
     <button class="navbtn" id="menuBtn" aria-label="תפריט"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12h.01M12 12h.01M16 12h.01" stroke-width="2.6"/></svg></button>
+    <button class="navbtn" id="recBtn" aria-label="תנועות קבועות"><svg class="i" viewBox="0 0 24 24"><path d="M17 2.5l3 3-3 3M4 11.5V10a4.5 4.5 0 0 1 4.5-4.5H20M7 21.5l-3-3 3-3M20 12.5V14a4.5 4.5 0 0 1-4.5 4.5H4"/></svg></button>
     <span class="sp"></span>
     <button class="navbtn txt hidden" id="todayBtn">היום</button>
     <button class="navbtn" id="prevBtn" aria-label="התקופה הקודמת"><svg class="i" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
     <button class="navbtn" id="nextBtn" aria-label="התקופה הבאה"><svg class="i" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
   </div>
-  <h1 id="plabel"></h1>
+  <h1><button id="plabel"></button></h1>
   <nav class="seg" id="periods">
     <button data-m="day">יום</button><button data-m="week">שבוע</button><button data-m="month">חודש</button><button data-m="year">שנה</button><button data-m="all">הכל</button>
   </nav>
   <div id="notice"></div>
 
+  <div id="pager">
   <section class="ringwrap" id="ringwrap">
     <svg id="ring" viewBox="0 0 340 340" aria-hidden="true"></svg>
     <div id="bubbles"></div>
@@ -242,6 +266,7 @@ select.field{appearance:none;-webkit-appearance:none;text-align:start;color:var(
   <div style="height:12px"></div>
   <input class="search hidden" id="search" type="search" placeholder="חיפוש" autocomplete="off">
   <div class="group" id="list"></div>
+  </div>
 </main>
 
 <div class="toolbar"><div class="in">
@@ -298,6 +323,7 @@ const ICONS={
  tools:'<path d="M15 4.5a4 4 0 0 0-4.7 5.2L4 16a2.1 2.1 0 0 0 3 3l6.3-6.3A4 4 0 0 0 18.5 8l-2.6 2.6-2.5-.5-.5-2.5z"/>',
  umbrella:'<path d="M3 12a9 9 0 0 1 18 0z"/><path d="M12 12v6.5a2 2 0 0 1-4 0"/>'
 };
+ICONS.repeat='<path d="M17 2.5l3 3-3 3M4 11.5V10a4.5 4.5 0 0 1 4.5-4.5H20M7 21.5l-3-3 3-3M20 12.5V14a4.5 4.5 0 0 1-4.5 4.5H4"/>';
 ICONS.lock='<rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/>';
 ICONS.faceid='<path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2M9 9v1.5M15 9v1.5M12.2 9v4h-1M9.5 15.5c1.4 1.2 3.6 1.2 5 0"/>';
 const ICON_KEYS=Object.keys(ICONS).filter(k=>k!=='lock'&&k!=='faceid');
@@ -343,7 +369,7 @@ const idb={db:null,
   set(k,v){return new Promise((res,rej)=>{const tx=this.db.transaction('kv','readwrite');tx.objectStore('kv').put(v,k);tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error)})}
 };
 const mkCat=([src,name,icon,color,kind])=>({id:uid(),src,name,icon,color,kind});
-const freshState=()=>({v:2,cats:DEFAULT_CATS.map(mkCat),txs:[],meta:{rides:1}});
+const freshState=()=>({v:2,cats:DEFAULT_CATS.map(mkCat),txs:[],rules:[],meta:{rides:1}});
 async function load(){
   try{await idb.open();S=await idb.get('state')}catch(e){idb.db=null;try{S=JSON.parse(localStorage.getItem('hakesef'))}catch(_){}}
   if(!S||!Array.isArray(S.txs))S=freshState();
@@ -357,6 +383,7 @@ async function load(){
 // brings older saved data up to date; returns number of ride transactions moved (or null if nothing changed)
 function migrate(){
   let changed=false;
+  if(!Array.isArray(S.rules)){S.rules=[];changed=true}
   for(const c of S.cats){
     if(!c.icon){const d=DEFAULT_CATS.find(x=>x[0]===c.src);c.icon=d?d[2]:'tag';if(d)c.color=d[3];changed=true}
   }
@@ -423,7 +450,7 @@ function sortDesc(arr){return arr.map((t,i)=>[t,i]).sort((x,y)=>y[0].d.localeCom
 
 /* ---------- render ---------- */
 function render(){
-  $('#plabel').textContent=periodLabel();
+  $('#plabel').innerHTML=`${esc(periodLabel())}${UI.mode==='all'?'':'<svg class="i" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>'}`;
   document.querySelectorAll('#periods button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.m===UI.mode));
   document.querySelectorAll('#views button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===UI.view));
   const all=UI.mode==='all';
@@ -475,13 +502,16 @@ function renderBalance(txs){
   let all=0;for(const t of S.txs)all+=t.t==='inc'?t.a:-t.a;
   const sgn=v=>`${v>0?'+':v<0?'−':''}${money(Math.abs(v))}`;
   $('#balance').innerHTML=`<div class="row"><span class="lbl">מאזן ${periodWord()}</span><span class="num ${bal>0?'inc-c':bal<0?'exp-c':''}">${sgn(bal)}</span></div>
+    ${upcomingRow()}
     ${UI.mode==='all'?'':`<div class="row"><span class="lbl">יתרה מצטברת</span><span class="num val">${all<0?'−':''}${money(Math.abs(all))}</span></div>`}`;
+  const up=$('#upRow');if(up)up.onclick=openRecurring;
 }
 function txRow(t,withDate){
   const c=cat(t.c);
   const sameNm=t.n&&t.n.trim()===c.name;
   const sub=[t.n&&!sameNm?c.name:'',withDate?fmtD(t.d,{day:'numeric',month:'short'}):''].filter(Boolean).join(', ');
-  return`<button class="row tx" data-tx="${t.id}">${ic(c)}<span class="mid"><span class="t">${esc(t.n||c.name)}</span>${sub?`<span class="s">${esc(sub)}</span>`:''}</span><span class="num ${t.t==='inc'?'inc-c':''}">${t.t==='inc'?'+':'−'}${money(t.a)}</span></button>`;
+  const rm=t.r?svg('repeat'):'';
+  return`<button class="row tx" data-tx="${t.id}">${ic(c)}<span class="mid"><span class="t">${esc(t.n||c.name)}</span>${sub||rm?`<span class="s">${rm}${esc(sub||'קבועה')}</span>`:''}</span><span class="num ${t.t==='inc'?'inc-c':''}">${t.t==='inc'?'+':'−'}${money(t.a)}</span></button>`;
 }
 function renderList(txs){
   const el=$('#list');
@@ -547,7 +577,7 @@ function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('on');
 
 /* ---------- add / edit ---------- */
 function openEditor({tx=null,type='exp',catId=null}={}){
-  const ed={id:tx?.id||null,t:tx?.t||type,amt:tx?String(tx.a):'',c:tx?.c||catId,d:tx?.d||(UI.mode==='day'?UI.anchor:today()),n:tx?.n||''};
+  const ed={id:tx?.id||null,t:tx?.t||type,amt:tx?String(tx.a):'',c:tx?.c||catId,d:tx?.d||(UI.mode==='day'?UI.anchor:today()),n:tx?.n||'',freq:null};
   const s=sheet(`
     <div class="snav"><button class="l" data-close>ביטול</button>
       <nav class="seg" id="edType"><button data-t="exp">הוצאה</button><button data-t="inc">הכנסה</button></nav>
@@ -557,6 +587,7 @@ function openEditor({tx=null,type='exp',catId=null}={}){
       <button class="row" id="edCat"></button>
       <label class="row"><span class="lbl">תאריך</span><span class="dateval"><span id="edDateL"></span><input type="date" id="edDate" aria-label="תאריך"></span></label>
       <div class="row"><input class="note" id="edNote" placeholder="הערה" maxlength="120" enterkeyhint="done"></div>
+      ${tx?(tx.r&&ruleById(tx.r)?`<button class="row" id="edRule"><span class="lbl">תנועה קבועה</span><span class="val">${esc(freqText(ruleById(tx.r)))}</span><span class="chev">${UI_ICON.chev}</span></button>`:''):`<button class="row" id="edRep"><span class="lbl">חזרה</span><span class="val" id="edRepV"></span><span class="chev">${UI_ICON.chev}</span></button>`}
     </div>
     <div class="keypad">${['1','2','3','4','5','6','7','8','9','.','0','⌫'].map(k=>`<button data-k="${k}" class="${k==='.'||k==='⌫'?'fn':''}" aria-label="${k==='⌫'?'מחיקת ספרה':k}">${k==='⌫'?UI_ICON.back:k}</button>`).join('')}</div>
     <button class="cta" id="edSave"></button>`);
@@ -569,7 +600,8 @@ function openEditor({tx=null,type='exp',catId=null}={}){
     el.querySelector('#edCat').innerHTML=c?`<span class="lbl">קטגוריה</span>${ic(c)}<span>${esc(c.name)}</span><span class="chev">${UI_ICON.chev}</span>`
       :`<span class="lbl">קטגוריה</span><span class="val">בחירה</span><span class="chev">${UI_ICON.chev}</span>`;
     el.querySelector('#edDateL').textContent=ed.d===today()?'היום':fmtD(ed.d,{weekday:'short',day:'numeric',month:'short'});
-    const b=el.querySelector('#edSave');b.textContent=ed.id?'שמירת שינויים':'שמירה';
+    const rv=el.querySelector('#edRepV');if(rv)rv.textContent=ed.freq?FREQ_LBL[ed.freq]:'ללא';
+    const b=el.querySelector('#edSave');b.textContent=ed.id?'שמירת שינויים':ed.freq?'שמירה כתנועה קבועה':'שמירה';
     b.style.background=ed.t==='exp'?'var(--exp)':'var(--inc)';
   };
   paint();
@@ -587,11 +619,14 @@ function openEditor({tx=null,type='exp',catId=null}={}){
   const doSave=()=>{
     const a=parseFloat(ed.amt);ed.n=note.value.trim();
     if(ed.id)Object.assign(S.txs.find(x=>x.id===ed.id),{a,t:ed.t,c:ed.c,d:ed.d,n:ed.n});
+    else if(ed.freq){S.rules.push({id:uid(),t:ed.t,a,c:ed.c,n:ed.n,freq:ed.freq,start:ed.d,end:null,paused:false,last:null});postDue();save();s.close();render();toast(`נשמרה תנועה קבועה: ${FREQ_LBL[ed.freq]}`);return}
     else S.txs.push({id:uid(),d:ed.d,a,t:ed.t,c:ed.c,n:ed.n});
     save();s.close();render();toast(ed.id?'השינויים נשמרו':`נשמר: ${cat(ed.c).name}, ${money(a)}`);
   };
   const noAmt=()=>{if(parseFloat(ed.amt)>0)return false;const x=el.querySelector('#edAmt');x.classList.remove('shake');void x.offsetWidth;x.classList.add('shake');return true};
   el.querySelector('#edCat').onclick=()=>pickCategory(ed.t,id=>{ed.c=id;paint()});
+  const rb=el.querySelector('#edRep');if(rb)rb.onclick=async()=>{const v=await ask('חזרה','',[{label:'כל חודש',val:'month'},{label:'כל חודשיים',val:'bimonth'},{label:'כל שבוע',val:'week'},{label:'כל שנה',val:'year'},{label:'ללא חזרה',val:'none'},{label:'ביטול',val:null}]);if(v){ed.freq=v==='none'?null:v;paint()}};
+  const rl=el.querySelector('#edRule');if(rl)rl.onclick=()=>{s.close();editRule(ruleById(tx.r))};
   el.querySelector('#edSave').onclick=()=>{if(noAmt())return;if(!ed.c)pickCategory(ed.t,id=>{ed.c=id;paint();doSave()});else doSave()};
   if(ed.id)el.querySelector('[data-del]').onclick=async()=>{
     const ok=await ask('למחוק את התנועה?',`${cat(tx.c).name}, ${money(tx.a)}, ${fmtD(tx.d,{day:'numeric',month:'long',year:'numeric'})}`,[{label:'מחיקה',val:true,cls:'danger'},{label:'ביטול',val:false}]);
@@ -734,7 +769,7 @@ async function saveFile(name,text,mime){
 }
 const stamp=()=>{const d=new Date();return`${ds(d)}_${pad(d.getHours())}-${pad(d.getMinutes())}`};
 async function backupJSON(){
-  const data=JSON.stringify({app:'hakesef',v:2,exported:new Date().toISOString(),cats:S.cats,txs:S.txs});
+  const data=JSON.stringify({app:'hakesef',v:2,exported:new Date().toISOString(),cats:S.cats,txs:S.txs,rules:S.rules||[]});
   if(await saveFile(`hakesef-backup-${stamp()}.json`,data,'application/json')){S.meta.lastBackup=Date.now();save();render();toast('הגיבוי נשמר')}
 }
 async function restoreJSON(file){
@@ -742,7 +777,7 @@ async function restoreJSON(file){
   if(!d||!Array.isArray(d.cats)||!Array.isArray(d.txs)){toast('הקובץ אינו גיבוי של האפליקציה');return}
   const ok=await ask('לשחזר מהגיבוי?',`${nf.format(d.txs.length)} תנועות${d.exported?', מ-'+new Date(d.exported).toLocaleDateString('he-IL'):''}. הנתונים הנוכחיים יוחלפו.`,[{label:'שחזור',val:true,cls:'danger'},{label:'ביטול',val:false}]);
   if(!ok)return;
-  S.cats=d.cats;S.txs=d.txs;S.meta={lastBackup:Date.now(),rides:d.v>=2?1:0,lock:S.meta.lock};migrate();reindex();await persist();UI.open=null;render();toast('הנתונים שוחזרו');
+  S.cats=d.cats;S.txs=d.txs;S.rules=Array.isArray(d.rules)?d.rules:[];S.meta={lastBackup:Date.now(),rides:d.v>=2?1:0,lock:S.meta.lock};migrate();reindex();await persist();UI.open=null;render();toast('הנתונים שוחזרו');
 }
 function exportCSV(){
   const q=s=>/[",\n\r]/.test(s)||/\s$/.test(s)?`"${String(s).replace(/"/g,'""')}"`:s;
@@ -763,6 +798,8 @@ function openMenu(){
     </div>
     <div class="foot">הנתונים נשמרים רק במכשיר הזה. ${lb?`גיבוי אחרון: ${new Date(lb).toLocaleDateString('he-IL')}.`:'עוד לא נשמר גיבוי.'} כדאי לשמור קובץ גיבוי ב-iCloud Drive פעם בחודש.</div>
     <div class="gap"></div>
+    <div class="group"><button class="row" data-a="rec" style="--inset:57px">${mi('#1FA39A','repeat')}<span class="lbl">תנועות קבועות</span><span class="val num">${S.rules.length}</span><span class="chev">${UI_ICON.chev}</span></button></div>
+    <div class="gap"></div>
     <div class="group"><button class="row" data-a="lock" style="--inset:57px">${mi('#3B5BDB','faceid')}<span class="lbl">נעילה</span><span class="val">${lk()?.on?(lk().cred?'Face ID וקוד':'קוד'):'כבויה'}</span><span class="chev">${UI_ICON.chev}</span></button></div>
     <div class="gap"></div>
     <div class="group"><button class="row" data-a="cats" style="--inset:57px">${mi('#E09A00','tag')}<span class="lbl">קטגוריות</span><span class="val num">${S.cats.length}</span><span class="chev">${UI_ICON.chev}</span></button></div>
@@ -775,7 +812,7 @@ function openMenu(){
     <div class="gap"></div>
     <div class="group"><button class="row" data-a="wipe"><span class="danger">מחיקת כל הנתונים</span></button></div>`);
   s.el.querySelector('[data-close]').onclick=s.close;
-  const act={lock:()=>{s.close();lockSettings()},backup:()=>{s.close();backupJSON()},restore:()=>{s.close();$('#fileJson').click()},cats:()=>{s.close();manageCategories()},
+  const act={rec:()=>{s.close();openRecurring()},lock:()=>{s.close();lockSettings()},backup:()=>{s.close();backupJSON()},restore:()=>{s.close();$('#fileJson').click()},cats:()=>{s.close();manageCategories()},
     import:()=>{s.close();$('#fileCsv').click()},csv:()=>{s.close();exportCSV()},
     wipe:async()=>{s.close();const ok=await ask('למחוק את כל הנתונים?','כל התנועות והקטגוריות יימחקו מהמכשיר. אי אפשר לבטל את זה.',[{label:'מחיקת הכל',val:true,cls:'danger'},{label:'ביטול',val:false}]);
       if(!ok)return;S=freshState();reindex();await persist();render();toast('כל הנתונים נמחקו')}};
@@ -912,6 +949,230 @@ function lockSettings(){
   };
 }
 
+
+/* ---------- recurring transactions ---------- */
+const FREQ_LBL={month:'כל חודש',bimonth:'כל חודשיים',week:'כל שבוע',year:'כל שנה'};
+const dim=(y,m)=>new Date(y,m+1,0).getDate();
+const ruleById=id=>(S.rules||[]).find(r=>r.id===id);
+function nextOcc(r,d){
+  const a=pd(d),st=pd(r.start),day=st.getDate();
+  if(r.freq==='week'){a.setDate(a.getDate()+7);return ds(a)}
+  if(r.freq==='year'){const y=a.getFullYear()+1,m=st.getMonth();return ds(new Date(y,m,Math.min(day,dim(y,m))))}
+  let y=a.getFullYear(),m=a.getMonth()+(r.freq==='bimonth'?2:1);if(m>11){m-=12;y++}
+  return ds(new Date(y,m,Math.min(day,dim(y,m))));
+}
+const nextDue=r=>r.last?nextOcc(r,r.last):r.start;
+const ended=(r,d)=>r.end&&d>r.end;
+function postDue(){
+  const t=today();let n=0;
+  for(const r of S.rules||[]){
+    if(r.paused)continue;
+    let d=nextDue(r),g=0;
+    while(d<=t&&!ended(r,d)&&g++<600){S.txs.push({id:uid(),d,a:r.a,t:r.t,c:r.c,n:r.n,r:r.id});r.last=d;n++;d=nextOcc(r,d)}
+  }
+  if(n){S.txs.sort((x,y)=>x.d.localeCompare(y.d));save()}
+  return n;
+}
+function skipPast(r){let d=nextDue(r),g=0;while(d<today()&&g++<600){r.last=d;d=nextOcc(r,d)}}
+function countPast(r){let d=nextDue(r),n=0;while(d<today()&&!ended(r,d)&&n<600){n++;d=nextOcc(r,d)}return n}
+function freqText(r){
+  const st=pd(r.start);
+  if(r.freq==='week')return`כל ${st.toLocaleDateString('he-IL',{weekday:'long'})}`;
+  if(r.freq==='year')return`כל שנה, ${fmtD(r.start,{day:'numeric',month:'long',noYear:1})}`;
+  return`${r.freq==='bimonth'?'כל חודשיים':'כל חודש'} ב-${st.getDate()}`;
+}
+const perMonth=r=>r.freq==='week'?r.a*52/12:r.freq==='year'?r.a/12:r.freq==='bimonth'?r.a/2:r.a;
+function upcomingRow(){
+  if(UI.mode!=='month')return'';
+  const[s,e]=range(),t=today();if(t>e)return'';
+  let net=0,n=0;
+  for(const r of S.rules||[]){if(r.paused)continue;let d=nextDue(r),g=0;
+    while(d<=e&&!ended(r,d)&&g++<60){if(d>t&&d>=s){net+=r.t==='inc'?r.a:-r.a;n++}d=nextOcc(r,d)}}
+  if(!n)return'';
+  return`<button class="row" id="upRow"><span class="lbl">קבועות שעוד צפויות ${s<=t?'החודש':'בחודש'}</span><span class="num val">${net>0?'+':net<0?'−':''}${money(Math.abs(net))}</span><span class="chev">${UI_ICON.chev}</span></button>`;
+}
+function suggestions(){
+  const n0=new Date(),from=ds(new Date(n0.getFullYear(),n0.getMonth()-6,1)),g=new Map();
+  for(const t of S.txs){if(t.d<from||t.r)continue;const k=`${t.t}|${t.c}|${(t.n||'').trim()}`;if(!g.has(k))g.set(k,[]);g.get(k).push(t)}
+  const out=[];
+  for(const l of g.values()){
+    const months=new Set(l.map(t=>t.d.slice(0,7)));
+    if(months.size<3||l.length>months.size+1)continue;
+    const mean=l.reduce((a,t)=>a+t.a,0)/l.length,sd=Math.sqrt(l.reduce((a,t)=>a+(t.a-mean)**2,0)/l.length);
+    if(sd/mean>.25)continue;
+    const f=l[0];
+    if(S.rules.some(r=>r.t===f.t&&r.c===f.c&&(r.n||'')===(f.n||'').trim()))continue;
+    const last=l.reduce((a,t)=>t.d>a.d?t:a);
+    const days=new Map();for(const t of l){const d=+t.d.slice(8);days.set(d,(days.get(d)||0)+1)}
+    const day=[...days.entries()].sort((a,b)=>b[1]-a[1])[0][0];
+    const mi=[...months].map(k=>+k.slice(0,4)*12+ +k.slice(5,7)).sort((a,b)=>a-b);
+    const freq=mi.length>=3&&mi.slice(1).every((v,i)=>v-mi[i]===2)?'bimonth':'month',step=freq==='bimonth'?2:1;
+    const lm=pd(last.d);let y=lm.getFullYear(),m=lm.getMonth()+step,start;
+    for(let g=0;g<24;g++){const yy=y+Math.floor(m/12),mm=m%12;start=ds(new Date(yy,mm,Math.min(day,dim(yy,mm))));if(start>today())break;m+=step}
+    out.push({t:f.t,c:f.c,n:(f.n||'').trim(),a:last.a,months:months.size,freq,start});
+  }
+  return out.sort((a,b)=>b.months-a.months||b.a-a.a).slice(0,6);
+}
+function openRecurring(){
+  const rules=S.rules||[];
+  let me=0,mi=0;for(const r of rules)if(!r.paused){if(r.t==='exp')me+=perMonth(r);else mi+=perMonth(r)}
+  const row=r=>{const c=cat(r.c);return`<button class="row rrow${r.paused?' paused':''}" data-r="${r.id}">${ic(c)}<span class="mid"><span class="t">${esc(r.n||c.name)}</span><span class="s">${esc(freqText(r))}, ${r.paused?'מושהית':ended(r,nextDue(r))?'הסתיימה':'הבא: '+fmtD(nextDue(r),{day:'numeric',month:'short'})}</span></span><span class="num ${r.t==='inc'?'inc-c':''}">${r.t==='inc'?'+':'−'}${money(r.a)}</span><span class="chev">${UI_ICON.chev}</span></button>`};
+  const sec=(t,ttl)=>{const l=rules.filter(r=>r.t===t).sort((a,b)=>b.a-a.a);return l.length?`<div class="ghdr">${ttl}</div><div class="group">${l.map(row).join('')}</div>`:''};
+  const sug=suggestions();
+  const s=sheet(`<div class="snav"><button class="l" data-close>סגירה</button><span class="ttl">תנועות קבועות</span><button class="r" data-new>הוספה</button></div>
+    ${rules.length?`<div class="group">
+      <div class="row"><span class="lbl">הוצאות קבועות בחודש</span><span class="num val">${money(me)}</span></div>
+      <div class="row"><span class="lbl">הכנסות קבועות בחודש</span><span class="num val">${money(mi)}</span></div>
+    </div>`:`<div class="empty" style="padding:18px 12px 4px"><b>אין עדיין תנועות קבועות</b>שכר דירה, חשבונות, מנויים ומשכורת יירשמו כאן לבד בכל פעם שמגיע מועדם.</div>`}
+    ${sec('exp','הוצאות')}${sec('inc','הכנסות')}
+    ${sug.length?`<div class="ghdr">חוזרות בנתונים שלך</div><div class="group">${sug.map((g,i)=>{const c=cat(g.c);return`<div class="row rrow">${ic(c)}<span class="mid"><span class="t">${esc(g.n||c.name)}</span><span class="s">${FREQ_LBL[g.freq]}, ${g.t==='inc'?'+':'−'}${money(g.a)}</span></span><button class="addbtn" data-s="${i}">הוספה</button></div>`}).join('')}</div>`:''}
+    <div class="foot">תנועה קבועה נרשמת לבד בתאריך שלה, בפעם הבאה שפותחים את האפליקציה.</div>`);
+  s.el.querySelector('[data-close]').onclick=s.close;
+  s.el.querySelector('[data-new]').onclick=()=>{s.close();editRule(null)};
+  s.el.querySelectorAll('[data-r]').forEach(b=>b.onclick=()=>{s.close();editRule(ruleById(b.dataset.r))});
+  s.el.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{const g=sug[+b.dataset.s];s.close();editRule(null,{t:g.t,a:g.a,c:g.c,n:g.n,freq:g.freq,start:g.start})});
+}
+function editRule(orig,preset){
+  const r=orig?{...orig}:{id:uid(),t:'exp',a:0,c:null,n:'',freq:'month',start:today(),end:null,paused:false,last:null,...(preset||{})};
+  let amt=r.a?String(r.a):'';
+  const posted=orig?S.txs.filter(t=>t.r===orig.id).length:0;
+  const s=sheet(`
+    <div class="snav"><button class="l" data-close>ביטול</button>
+      <nav class="seg" id="rType"><button data-t="exp">הוצאה</button><button data-t="inc">הכנסה</button></nav>
+      <button class="r" id="rSave">שמירה</button></div>
+    <div class="amount" id="rAmt"></div>
+    <div class="group">
+      <button class="row" id="rCat"></button>
+      <div class="row"><input class="note" id="rNote" placeholder="שם, למשל: שכר דירה" maxlength="120" enterkeyhint="done"></div>
+    </div>
+    <div class="keypad">${['1','2','3','4','5','6','7','8','9','.','0','⌫'].map(k=>`<button data-k="${k}" class="${k==='.'||k==='⌫'?'fn':''}" aria-label="${k==='⌫'?'מחיקת ספרה':k}">${k==='⌫'?UI_ICON.back:k}</button>`).join('')}</div>
+    <div class="ghdr">חזרה</div>
+    <nav class="seg" id="rFreq"><button data-f="week">שבוע</button><button data-f="month">חודש</button><button data-f="bimonth">חודשיים</button><button data-f="year">שנה</button></nav>
+    <div class="gap" style="height:14px"></div>
+    <div class="group">
+      <label class="row"><span class="lbl">${orig?'מועד ראשון':'החל מ־'}</span><span class="dateval"><span id="rStartL"></span><input type="date" id="rStart"></span></label>
+      <div class="row"><label style="flex:1;display:flex;align-items:center"><span class="lbl">עד</span><span class="dateval"><span id="rEndL"></span><input type="date" id="rEnd"></span></label><button class="clr hidden" id="rEndClr">ניקוי</button></div>
+    </div>
+    <div class="foot" id="rFoot"></div>
+    ${orig?`<div class="gap"></div><div class="group">
+      <button class="row" id="rPause"><span style="color:var(--tint)">${orig.paused?'חידוש':'השהיה'}</span></button>
+      <button class="row" id="rDel"><span class="danger">מחיקת התנועה הקבועה</span></button></div>
+      <div class="foot">${posted?`${posted} תנועות שכבר נרשמו יישארו ברשימה גם אחרי שינוי או מחיקה.`:''}</div>`:''}`);
+  const el=s.el,note=el.querySelector('#rNote'),st=el.querySelector('#rStart'),en=el.querySelector('#rEnd');
+  note.value=r.n||'';st.value=r.start;en.value=r.end||'';
+  const paint=()=>{
+    el.querySelectorAll('#rType button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.t===r.t));
+    el.querySelectorAll('#rFreq button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.f===r.freq));
+    el.querySelector('#rAmt').innerHTML=`<small>₪</small>${amt?esc(amt.replace(/^(\d+)/,m=>nf.format(+m))):'0'}`;
+    const c=r.c&&catMap.get(r.c);
+    el.querySelector('#rCat').innerHTML=c?`<span class="lbl">קטגוריה</span>${ic(c)}<span>${esc(c.name)}</span><span class="chev">${UI_ICON.chev}</span>`:`<span class="lbl">קטגוריה</span><span class="val">בחירה</span><span class="chev">${UI_ICON.chev}</span>`;
+    el.querySelector('#rStartL').textContent=r.start===today()?'היום':fmtD(r.start,{day:'numeric',month:'short',year:'numeric'});
+    el.querySelector('#rEndL').textContent=r.end?fmtD(r.end,{day:'numeric',month:'short',year:'numeric'}):'ללא';
+    el.querySelector('#rEndClr').classList.toggle('hidden',!r.end);
+    el.querySelector('#rFoot').textContent=`${freqText(r)}.`;
+  };
+  paint();
+  el.querySelector('[data-close]').onclick=s.close;
+  el.querySelectorAll('#rType button').forEach(b=>b.onclick=()=>{r.t=b.dataset.t;if(r.c&&!fits(cat(r.c),r.t))r.c=null;paint()});
+  el.querySelectorAll('#rFreq button').forEach(b=>b.onclick=()=>{r.freq=b.dataset.f;paint()});
+  el.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>{
+    const k=b.dataset.k;let v=amt;
+    if(k==='⌫')v=v.slice(0,-1);else if(k==='.'){if(!v.includes('.'))v=(v||'0')+'.'}
+    else{const[i,f]=v.split('.');if(f!==undefined&&f.length>=2)return;if(f===undefined&&i.replace(/^0+/,'').length>=8)return;v=(v==='0'?'':v)+k}
+    amt=v;paint();
+  });
+  st.onchange=()=>{if(st.value){r.start=st.value;paint()}};
+  en.onchange=()=>{r.end=en.value||null;paint()};
+  el.querySelector('#rEndClr').onclick=()=>{r.end=null;en.value='';paint()};
+  note.addEventListener('keydown',e=>{if(e.key==='Enter')note.blur()});
+  el.querySelector('#rCat').onclick=()=>pickCategory(r.t,id=>{r.c=id;paint()});
+  el.querySelector('#rSave').onclick=async()=>{
+    r.a=parseFloat(amt);r.n=note.value.trim();
+    if(!(r.a>0)){const x=el.querySelector('#rAmt');x.classList.remove('shake');void x.offsetWidth;x.classList.add('shake');return}
+    if(!r.c){pickCategory(r.t,id=>{r.c=id;paint()});return}
+    if(r.end&&r.end<r.start){toast('תאריך הסיום לפני תאריך ההתחלה');return}
+    if(orig){
+      const sched=orig.start!==r.start||orig.freq!==r.freq;
+      if(sched){const cap=orig.last;r.last=null;if(cap){let d=r.start,g=0;while(d<=cap&&g++<600){r.last=d;d=nextOcc(r,d)}}}
+      Object.assign(orig,r);
+    }else{
+      const n=countPast(r);
+      if(n){const v=await ask('לרשום גם תנועות שכבר עברו?',`מאז ${fmtD(r.start,{day:'numeric',month:'long'})} היו ${n} מועדים של התנועה הזו.`,
+        [{label:`רישום ${n} התנועות`,val:'all'},{label:'רישום מהיום והלאה בלבד',val:'skip'},{label:'ביטול',val:null}]);
+        if(!v)return;if(v==='skip')skipPast(r)}
+      S.rules.push(r);
+    }
+    const n=postDue();save();s.close();render();openRecurring();
+    toast(n?`נשמר, ונרשמו ${n} תנועות`:'נשמר');
+  };
+  if(orig){
+    el.querySelector('#rPause').onclick=()=>{orig.paused=!orig.paused;if(!orig.paused)skipPast(orig);const n=postDue();save();s.close();render();openRecurring();toast(orig.paused?'התנועה הקבועה הושהתה':n?`חודשה, ונרשמו ${n} תנועות`:'התנועה הקבועה חודשה')};
+    el.querySelector('#rDel').onclick=async()=>{
+      const ok=await ask('למחוק את התנועה הקבועה?','תנועות שכבר נרשמו יישארו ברשימה.',[{label:'מחיקה',val:true,cls:'danger'},{label:'ביטול',val:false}]);
+      if(!ok)return;S.rules=S.rules.filter(x=>x.id!==orig.id);save();s.close();render();openRecurring();toast('נמחקה');
+    };
+  }
+}
+
+/* ---------- period picker & swipe ---------- */
+function openPicker(){
+  if(UI.mode==='all')return;
+  const HM=['ינו׳','פבר׳','מרץ','אפר׳','מאי','יוני','יולי','אוג׳','ספט׳','אוק׳','נוב׳','דצמ׳'];
+  if(UI.mode==='year'){
+    const ys=new Map();for(const t of S.txs){const y=t.d.slice(0,4);const o=ys.get(y)||{e:0,i:0};o[t.t==='exp'?'e':'i']+=t.a;ys.set(y,o)}
+    const cy=String(cyear());if(!ys.has(cy))ys.set(cy,{e:0,i:0});
+    const cur=UI.anchor.slice(0,4);
+    const s=sheet(`<div class="snav"><button class="l" data-close>ביטול</button><span class="ttl">בחירת שנה</span><span></span></div>
+      <div class="group ylist">${[...ys.keys()].sort().reverse().map(y=>`<button class="row" data-y="${y}"><span class="lbl" style="${y===cur?'color:var(--tint);font-weight:600':''}">${y}</span><span class="val num">−${money(ys.get(y).e)}</span></button>`).join('')}</div>`);
+    s.el.querySelector('[data-close]').onclick=s.close;
+    s.el.querySelectorAll('[data-y]').forEach(b=>b.onclick=()=>{UI.anchor=`${b.dataset.y}-01-01`;UI.open=null;s.close();render()});
+    return;
+  }
+  let year=pd(UI.anchor).getFullYear();
+  const s=sheet(`<div class="snav"><button class="l" data-close>ביטול</button><span class="ttl">בחירת חודש</span><button class="r" data-today>היום</button></div><div id="pk"></div>`);
+  const paint=()=>{
+    const tot=new Array(12).fill(0);for(const t of S.txs)if(t.t==='exp'&&+t.d.slice(0,4)===year)tot[+t.d.slice(5,7)-1]+=t.a;
+    const a=pd(UI.anchor),nowM=new Date();
+    s.el.querySelector('#pk').innerHTML=`<div class="ynav"><button data-yd="-1" aria-label="השנה הקודמת"><svg class="i" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button><b>${year}</b><button data-yd="1" aria-label="השנה הבאה"><svg class="i" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button></div>
+      <div class="mgrid">${HM.map((m,i)=>`<button data-m="${i}" class="${year===nowM.getFullYear()&&i===nowM.getMonth()?'now':''}" aria-current="${year===a.getFullYear()&&i===a.getMonth()}"><span class="mn">${m}</span><span class="ma">${tot[i]?'−'+money(tot[i]):' '}</span></button>`).join('')}</div>`;
+    s.el.querySelectorAll('[data-yd]').forEach(b=>b.onclick=()=>{year+=+b.dataset.yd;paint()});
+    s.el.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>{
+      const m=+b.dataset.m,d=UI.mode==='month'?1:Math.min(pd(UI.anchor).getDate(),dim(year,m));
+      UI.anchor=ds(new Date(year,m,d));UI.open=null;s.close();render()});
+  };
+  paint();
+  s.el.querySelector('[data-close]').onclick=s.close;
+  s.el.querySelector('[data-today]').onclick=()=>{UI.anchor=today();UI.open=null;s.close();render()};
+}
+function setupSwipe(){
+  const pg=$('#pager');let sx=0,sy=0,dx=0,on=false,horiz=null,t0=0,block=false,anim=false;
+  const ease='cubic-bezier(.2,.8,.2,1)';
+  pg.addEventListener('touchstart',e=>{if(anim||e.touches.length!==1)return;sx=e.touches[0].clientX;sy=e.touches[0].clientY;dx=0;horiz=null;on=true;t0=performance.now();pg.style.transition='none'},{passive:true});
+  pg.addEventListener('touchmove',e=>{
+    if(!on)return;const x=e.touches[0].clientX-sx,y=e.touches[0].clientY-sy;
+    if(horiz===null){if(Math.abs(x)<10&&Math.abs(y)<10)return;horiz=Math.abs(x)>Math.abs(y)*1.2;if(!horiz){on=false;return}}
+    dx=x;const k=UI.mode==='all'?.2:1;
+    pg.style.transform=`translateX(${dx*k}px)`;pg.style.opacity=String(1-Math.min(Math.abs(dx)/pg.offsetWidth,1)*.4);
+  },{passive:true});
+  const end=()=>{
+    if(!on)return;on=false;if(!horiz)return;
+    block=true;setTimeout(()=>block=false,400);
+    const W=pg.offsetWidth,v=Math.abs(dx)/Math.max(performance.now()-t0,1);
+    if(UI.mode!=='all'&&(Math.abs(dx)>W*.22||(v>.45&&Math.abs(dx)>35))){
+      const dir=dx>0?1:-1;anim=true;
+      pg.style.transition=`transform .16s ease-in, opacity .16s`;pg.style.transform=`translateX(${dir*W*.6}px)`;pg.style.opacity='0';
+      setTimeout(()=>{
+        shift(dir);
+        pg.style.transition='none';pg.style.transform=`translateX(${-dir*W*.35}px)`;
+        requestAnimationFrame(()=>requestAnimationFrame(()=>{pg.style.transition=`transform .28s ${ease}, opacity .28s`;pg.style.transform='';pg.style.opacity='';setTimeout(()=>anim=false,280)}));
+      },160);
+    }else{pg.style.transition=`transform .25s ${ease}, opacity .25s`;pg.style.transform='';pg.style.opacity=''}
+  };
+  pg.addEventListener('touchend',end,{passive:true});
+  pg.addEventListener('touchcancel',end,{passive:true});
+  pg.addEventListener('click',e=>{if(block){e.stopPropagation();e.preventDefault()}},true);
+}
+
 /* ---------- wiring ---------- */
 function wire(){
   $('#prevBtn').onclick=()=>shift(-1);$('#nextBtn').onclick=()=>shift(1);
@@ -931,14 +1192,17 @@ function wire(){
   $('#menuBtn').onclick=openMenu;
   $('#fileCsv').onchange=e=>{const f=e.target.files[0];e.target.value='';if(f)importCSV(f)};
   $('#fileJson').onchange=e=>{const f=e.target.files[0];e.target.value='';if(f)restoreJSON(f)};
-  let x0=null;const rw=$('#ringwrap');
-  rw.addEventListener('touchstart',e=>{x0=e.touches[0].clientX},{passive:true});
-  rw.addEventListener('touchend',e=>{if(x0==null)return;const dx=e.changedTouches[0].clientX-x0;x0=null;if(Math.abs(dx)>60)shift(dx>0?1:-1)},{passive:true});
+  $('#plabel').onclick=openPicker;
+  $('#recBtn').onclick=openRecurring;
+  setupSwipe();
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){const n=postDue();if(n){render();toast(`נרשמו ${n} תנועות קבועות`)}}});
 }
 (async()=>{
   const moved=await load();
   if(lk()?.on)showLock();
+  const posted=postDue();
   wire();render();
+  if(posted)setTimeout(()=>toast(`נרשמו ${posted} תנועות קבועות`),moved?2600:0);
   if(moved)toast(`נוספו קטגוריות טרמפים, ו-${moved} תנועות עברו אליהן`);
   if('serviceWorker' in navigator&&location.protocol==='https:'){try{navigator.serviceWorker.register('./sw.js').catch(()=>{})}catch(_){}}
 })();
