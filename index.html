@@ -257,6 +257,24 @@ h1 #plabel svg.i{width:18px;height:18px;color:var(--tint);stroke-width:2.4;margi
 .lockinfo{display:flex;flex-direction:column;align-items:center;text-align:center;padding:8px 8px 16px}
 .lockinfo svg.i{width:56px;height:56px;stroke-width:1.4;color:var(--tint);margin-bottom:12px}
 .lockinfo p{margin:0;color:var(--muted);font-size:15px;line-height:1.4}
+/* loans */
+.frow .lbl{flex:none}
+.frow .field{text-align:left;direction:ltr;color:var(--ink);min-width:0}
+.frow .field::placeholder{color:var(--muted)}
+.frow .unit{color:var(--muted);flex:none}
+.lhero{text-align:center;padding:2px 4px 16px}
+.lhero .cap{font-size:13px;color:var(--muted)}
+.lhero .amount{margin:2px 0 12px}
+.lbar{height:6px;border-radius:3px;background:var(--track);overflow:hidden}
+.lbar i{display:block;height:100%;background:var(--c,var(--tint))}
+.ghdr.lh{display:flex;justify-content:space-between;align-items:baseline}
+details.yr summary{list-style:none;display:flex;justify-content:space-between;gap:8px;cursor:pointer}
+details.yr summary::-webkit-details-marker{display:none}
+details.yr summary span:first-child{font-weight:600;color:var(--ink)}
+.rrow.paid{opacity:.45}
+.lp .mid{min-width:0}.lp .s{white-space:nowrap}
+details.yr,details.yr *{box-sizing:border-box}
+.ll .s{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 </style>
 </head>
 <body>
@@ -264,6 +282,7 @@ h1 #plabel svg.i{width:18px;height:18px;color:var(--tint);stroke-width:2.4;margi
   <div class="navrow">
     <button class="navbtn" id="menuBtn" aria-label="תפריט"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12h.01M12 12h.01M16 12h.01" stroke-width="2.6"/></svg></button>
     <button class="navbtn" id="recBtn" aria-label="תנועות קבועות"><svg class="i" viewBox="0 0 24 24"><path d="M17 2.5l3 3-3 3M4 11.5V10a4.5 4.5 0 0 1 4.5-4.5H20M7 21.5l-3-3 3-3M20 12.5V14a4.5 4.5 0 0 1-4.5 4.5H4"/></svg></button>
+    <button class="navbtn" id="loanBtn" aria-label="הלוואות"><svg class="i" viewBox="0 0 24 24"><path d="M3.5 9.5L12 4.5l8.5 5M5 9.5h14M6.5 10.5v6.5M10 10.5v6.5M14 10.5v6.5M17.5 10.5v6.5M4 19.5h16"/></svg></button>
     <button class="navbtn hidden" id="apBtn" aria-label="סנכרון Apple Pay"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="5.5" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h3"/></svg></button>
     <span class="sp"></span>
     <button class="navbtn txt hidden" id="todayBtn">היום</button>
@@ -397,7 +416,7 @@ const idb={db:null,
   set(k,v){return new Promise((res,rej)=>{const tx=this.db.transaction('kv','readwrite');tx.objectStore('kv').put(v,k);tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error)})}
 };
 const mkCat=([src,name,icon,color,kind])=>({id:uid(),src,name,icon,color,kind});
-const freshState=()=>({v:2,cats:DEFAULT_CATS.map(mkCat),txs:[],rules:[],pending:[],meta:{rides:1}});
+const freshState=()=>({v:2,cats:DEFAULT_CATS.map(mkCat),txs:[],rules:[],pending:[],loans:[],meta:{rides:1}});
 async function load(){
   try{await idb.open();S=await idb.get('state')}catch(e){idb.db=null;try{S=JSON.parse(localStorage.getItem('hakesef'))}catch(_){}}
   if(!S||!Array.isArray(S.txs))S=freshState();
@@ -413,6 +432,7 @@ function migrate(){
   let changed=false;
   if(!Array.isArray(S.rules)){S.rules=[];changed=true}
   if(!Array.isArray(S.pending)){S.pending=[];changed=true}
+  if(!Array.isArray(S.loans)){S.loans=[];changed=true}
   for(const c of S.cats){
     if(!c.icon){const d=DEFAULT_CATS.find(x=>x[0]===c.src);c.icon=d?d[2]:'tag';if(d)c.color=d[3];changed=true}
   }
@@ -838,7 +858,7 @@ async function saveFile(name,text,mime){
 }
 const stamp=()=>{const d=new Date();return`${ds(d)}_${pad(d.getHours())}-${pad(d.getMinutes())}`};
 async function backupJSON(){
-  const data=JSON.stringify({app:'hakesef',v:2,exported:new Date().toISOString(),cats:S.cats,txs:S.txs,rules:S.rules||[],pending:S.pending||[],extra:{merchants:S.meta.merchants||{},tags:S.meta.tags||[],apSeen:S.meta.apSeen||[],hiddenQuick:S.meta.hiddenQuick||[]}});
+  const data=JSON.stringify({app:'hakesef',v:2,exported:new Date().toISOString(),cats:S.cats,txs:S.txs,rules:S.rules||[],pending:S.pending||[],loans:S.loans||[],extra:{primeHist:S.meta.primeHist||[],cpiHist:S.meta.cpiHist||[],merchants:S.meta.merchants||{},tags:S.meta.tags||[],apSeen:S.meta.apSeen||[],hiddenQuick:S.meta.hiddenQuick||[]}});
   if(await saveFile(`hakesef-backup-${stamp()}.json`,data,'application/json')){S.meta.lastBackup=Date.now();save();render();toast('הגיבוי נשמר')}
 }
 async function restoreJSON(file){
@@ -846,7 +866,7 @@ async function restoreJSON(file){
   if(!d||!Array.isArray(d.cats)||!Array.isArray(d.txs)){toast('הקובץ אינו גיבוי של האפליקציה');return}
   const ok=await ask('לשחזר מהגיבוי?',`${nf.format(d.txs.length)} תנועות${d.exported?', מ-'+new Date(d.exported).toLocaleDateString('he-IL'):''}. הנתונים הנוכחיים יוחלפו.`,[{label:'שחזור',val:true,cls:'danger'},{label:'ביטול',val:false}]);
   if(!ok)return;
-  S.cats=d.cats;S.txs=d.txs;S.rules=Array.isArray(d.rules)?d.rules:[];S.pending=Array.isArray(d.pending)?d.pending:[];S.meta={lastBackup:Date.now(),rides:d.v>=2?1:0,lock:S.meta.lock,apOn:S.meta.apOn,...(d.extra||{})};migrate();reindex();await persist();UI.open=null;render();toast('הנתונים שוחזרו');
+  S.cats=d.cats;S.txs=d.txs;S.rules=Array.isArray(d.rules)?d.rules:[];S.pending=Array.isArray(d.pending)?d.pending:[];S.loans=Array.isArray(d.loans)?d.loans:[];S.meta={lastBackup:Date.now(),rides:d.v>=2?1:0,lock:S.meta.lock,apOn:S.meta.apOn,...(d.extra||{})};migrate();reindex();await persist();UI.open=null;render();toast('הנתונים שוחזרו');
 }
 function exportCSV(){
   const q=s=>/[",\n\r]/.test(s)||/\s$/.test(s)?`"${String(s).replace(/"/g,'""')}"`:s;
@@ -868,6 +888,7 @@ function openMenu(){
     <div class="foot">הנתונים נשמרים רק במכשיר הזה. ${lb?`גיבוי אחרון: ${new Date(lb).toLocaleDateString('he-IL')}.`:'עוד לא נשמר גיבוי.'} כדאי לשמור קובץ גיבוי ב-iCloud Drive פעם בחודש.</div>
     <div class="gap"></div>
     <div class="group"><button class="row" data-a="rec" style="--inset:57px">${mi('#1FA39A','repeat')}<span class="lbl">תנועות קבועות</span><span class="val num">${S.rules.length}</span><span class="chev">${UI_ICON.chev}</span></button>
+      <button class="row" data-a="loans" style="--inset:57px">${mi('#13795B','bank')}<span class="lbl">הלוואות</span><span class="val num">${S.loans.length}</span><span class="chev">${UI_ICON.chev}</span></button>
       <button class="row" data-a="tags" style="--inset:57px">${mi('#8E5BD9','hash')}<span class="lbl">תגיות</span><span class="val num">${allTags().length}</span><span class="chev">${UI_ICON.chev}</span></button>
       <button class="row" data-a="ap" style="--inset:57px">${mi('#000000','card')}<span class="lbl">Apple Pay</span><span class="val">${S.meta.apOn?'מחובר':'הגדרה'}</span><span class="chev">${UI_ICON.chev}</span></button></div>
     <div class="gap"></div>
@@ -883,7 +904,7 @@ function openMenu(){
     <div class="gap"></div>
     <div class="group"><button class="row" data-a="wipe"><span class="danger">מחיקת כל הנתונים</span></button></div>`);
   s.el.querySelector('[data-close]').onclick=s.close;
-  const act={tags:()=>{s.close();openTags()},ap:()=>{s.close();openAPSetup()},rec:()=>{s.close();openRecurring()},lock:()=>{s.close();lockSettings()},backup:()=>{s.close();backupJSON()},restore:()=>{s.close();$('#fileJson').click()},cats:()=>{s.close();manageCategories()},
+  const act={loans:()=>{s.close();openLoans()},tags:()=>{s.close();openTags()},ap:()=>{s.close();openAPSetup()},rec:()=>{s.close();openRecurring()},lock:()=>{s.close();lockSettings()},backup:()=>{s.close();backupJSON()},restore:()=>{s.close();$('#fileJson').click()},cats:()=>{s.close();manageCategories()},
     import:()=>{s.close();$('#fileCsv').click()},csv:()=>{s.close();exportCSV()},
     wipe:async()=>{s.close();const ok=await ask('למחוק את כל הנתונים?','כל התנועות והקטגוריות יימחקו מהמכשיר. אי אפשר לבטל את זה.',[{label:'מחיקת הכל',val:true,cls:'danger'},{label:'ביטול',val:false}]);
       if(!ok)return;S=freshState();reindex();await persist();render();toast('כל הנתונים נמחקו')}};
@@ -1183,6 +1204,266 @@ function editRule(orig,preset){
       if(!ok)return;const i=S.rules.indexOf(orig);S.rules.splice(i,1);save();s.close();render();openRecurring();toast('התנועה הקבועה נמחקה',undo(()=>{S.rules.splice(i,0,orig);save();render()}));
     };
   }
+}
+
+/* ---------- loans: separate tracker (never posts transactions) ---------- */
+const LOAN_KIND={mortgage:['משכנתא','home','#E09A00'],car:['רכב','car','#2F6FDB'],bank:['בנק','bank','#13795B'],other:['אחר','wallet','#6E7781']};
+const TRACK_LBL={fixed:'ריבית קבועה',prime:'פריים',cpi:'צמודה למדד'};
+const loanIc=L=>{const k=LOAN_KIND[L.kind]||LOAN_KIND.other;return ic({icon:k[1],color:k[2]})};
+const nf0=new Intl.NumberFormat('he-IL',{maximumFractionDigits:0}),nf2=new Intl.NumberFormat('he-IL',{minimumFractionDigits:2,maximumFractionDigits:2});
+const m0=n=>'₪'+nf0.format(Math.round(n)),m2=n=>'₪'+nf2.format(n);
+const pct=n=>nf.format(Math.round(n*1000)/1000)+'%';
+const pnum=s=>{s=String(s??'').trim().replace(/[^\d.,\-−]/g,'').replace('−','-');if(s.includes(',')&&!s.includes('.'))s=s.replace(',','.');else s=s.replace(/,/g,'');const v=parseFloat(s);return isFinite(v)?v:NaN};
+function addMonths(s,k){const d=pd(s),day=d.getDate(),t=new Date(d.getFullYear(),d.getMonth()+k,1),last=new Date(t.getFullYear(),t.getMonth()+1,0).getDate();t.setDate(Math.min(day,last));return ds(t)}
+const byD=a=>[...(a||[])].sort((x,y)=>x.d.localeCompare(y.d));
+const lastAt=(h,d)=>{let v=null;for(const x of h)if(x.d<=d)v=x.v;return v};
+const primeHist=()=>byD(S.meta.primeHist);
+const cpiHist=()=>byD(S.meta.cpiHist);
+function primeAt(d){const h=primeHist();return h.length?(lastAt(h,d)??h[0].v):0}
+function loanFactor(L,d){if(L.track!=='cpi'||!(L.cpiBase>0))return 1;const v=lastAt(cpiHist(),d);return v?v/L.cpiBase:1}
+function loanRateAt(L,d){
+  if(L.track==='prime')return primeAt(d)+(+L.margin||0);
+  let r=+L.rate||0;for(const e of byD(L.ev))if(e.type==='rate'&&e.d<=d)r=e.v;return r;
+}
+const annuity=(B,r,n)=>n<=1?B*(1+r):r?B*r/(1-Math.pow(1+r,-n)):B/n;
+// month-by-month schedule. CPI loans are computed in real terms and scaled by the known index.
+function schedule(L){
+  const ev=byD(L.ev).filter(e=>e.type!=='rate');let ei=0;
+  let B=+L.amount||0,n=Math.max(1,Math.round(+L.months||1)),fix=null,lastRate=null;const rows=[];
+  for(let i=0;i<1200&&n>0;i++){
+    const d=addMonths(L.start,i),rate=loanRateAt(L,d),r=rate/1200;
+    while(ei<ev.length&&ev[ei].d<d){
+      const e=ev[ei++],f=loanFactor(L,e.d);
+      if(e.type==='balance'){B=Math.max(0,e.v/f);fix=null}
+      else if(e.type==='prepay'){
+        const prev=L.method==='equal'?B/n:annuity(B,r,n);B=Math.max(0,B-e.v/f);
+        if(e.mode==='term'&&B>0&&prev>0){
+          if(L.method==='equal'||!r||B*r>=prev)n=Math.max(1,Math.ceil(B/prev-1e-9));
+          else n=Math.max(1,Math.ceil(-Math.log(1-B*r/prev)/Math.log(1+r)-1e-9));
+          fix=prev; // keep the same monthly amount; the last payment comes out smaller
+        }else if(e.mode!=='term')fix=null;
+      }
+    }
+    if(B<=0.005)break;
+    if(lastRate!==null&&rate!==lastRate)fix=null;lastRate=rate;
+    const pre=B,int=B*r;let prin=fix!==null?(L.method==='equal'?fix:fix-int):L.method==='equal'?B/n:annuity(B,r,n)-int;if(n<=1||prin>B)prin=B;
+    B-=prin;const f=loanFactor(L,d);
+    rows.push({d,rate,pay:(prin+int)*f,int:int*f,prin:prin*f,bal:B*f,pre,real:B});
+    n--;
+  }
+  return{rows,endReal:B};
+}
+function loanStatus(L){
+  const{rows}=schedule(L),t=today();
+  let k=0,paid=0,paidInt=0,paidIdx=0;for(const r of rows){if(r.d>t)break;paid+=r.pay;paidInt+=r.int;paidIdx+=r.prin-(r.pre-r.real);k++}
+  const next=rows[k]||null,fNow=loanFactor(L,t);
+  const balReal=next?next.pre:0;
+  let intLeft=0;for(let i=k;i<rows.length;i++)intLeft+=rows[i].int;
+  const amt=+L.amount||0;
+  return{rows,k,next,paid,paidInt,paidIdx,bal:balReal*fNow,left:rows.length-k,intLeft,last:rows[rows.length-1]||null,
+    progress:amt?Math.min(1,Math.max(0,1-balReal/amt)):0,rate:loanRateAt(L,t),factor:fNow};
+}
+const monthsText=n=>{const y=Math.floor(n/12),m=n%12;return[y?(y===1?'שנה':y===2?'שנתיים':`${y} שנים`):'',m?(m===1?'חודש':`${m} חודשים`):''].filter(Boolean).join(' ו־')||'0 חודשים'};
+
+function openLoans(){
+  const L=S.loans,st=L.map(l=>[l,loanStatus(l)]);
+  let bal=0,mon=0,intLeft=0;for(const[,s]of st){bal+=s.bal;if(s.next)mon+=s.next.pay;intLeft+=s.intLeft}
+  const active=st.filter(([,s])=>s.next).sort((a,b)=>b[1].bal-a[1].bal),done=st.filter(([,s])=>!s.next);
+  const row=([l,s])=>`<button class="row rrow ll" data-l="${l.id}">${loanIc(l)}<span class="mid"><span class="t">${esc(l.name)}</span><span class="s">${s.next?`${m0(s.next.pay)} בחודש, עד ${fmtD(s.last.d,{month:'short',year:'numeric'})}`:'נפרעה במלואה'}</span></span><span class="num">${m0(s.bal)}</span><span class="chev">${UI_ICON.chev}</span></button>`;
+  const hasP=L.some(l=>l.track==='prime'),hasC=L.some(l=>l.track==='cpi'),ph=primeHist(),ch=cpiHist();
+  const s=sheet(`<div class="snav"><button class="l" data-close>סגירה</button><span class="ttl">הלוואות</span><button class="r" data-new>הוספה</button></div>
+    ${L.length?`<div class="group">
+      <div class="row"><span class="lbl">יתרה לסילוק</span><span class="num val">${m0(bal)}</span></div>
+      <div class="row"><span class="lbl">החזר חודשי</span><span class="num val">${m2(mon)}</span></div>
+      <div class="row"><span class="lbl">ריבית שנותרה לשלם</span><span class="num val">${m0(intLeft)}</span></div>
+    </div>`:`<div class="empty" style="padding:18px 12px 4px"><b>אין עדיין הלוואות</b>משכנתא, הלוואת רכב או הלוואה מהבנק: היתרה, ההחזר החודשי והריבית יחושבו כאן לפי לוח הסילוקין.</div>`}
+    ${active.length?`<div class="ghdr">פעילות</div><div class="group">${active.map(row).join('')}</div>`:''}
+    ${done.length?`<div class="ghdr">נפרעו</div><div class="group">${done.map(row).join('')}</div>`:''}
+    ${hasP||hasC?`<div class="ghdr">נתוני שוק</div><div class="group">
+      ${hasP?`<button class="row" data-m="prime"><span class="lbl">ריבית פריים</span><span class="num val">${ph.length?pct(primeAt(today())):'—'}</span><span class="chev">${UI_ICON.chev}</span></button>`:''}
+      ${hasC?`<button class="row" data-m="cpi"><span class="lbl">מדד ידוע</span><span class="val">${ch.length?`<span class="num">${nf.format(lastAt(ch,today())??ch[0].v)}</span>`:'—'}</span><span class="chev">${UI_ICON.chev}</span></button>`:''}
+    </div><div class="foot">עדכון כאן משנה את כל ההלוואות במסלול.</div>`:''}
+    ${L.length?`<div class="foot" style="margin-top:14px">ההחזרים לא נרשמים כהוצאות. החישוב משוער; כדי לשמור על דיוק, כדאי לעדכן מדי פעם את היתרה מדוח הבנק.</div>`:''}`);
+  s.el.querySelector('[data-close]').onclick=s.close;
+  s.el.querySelector('[data-new]').onclick=()=>{s.close();editLoan(null)};
+  s.el.querySelectorAll('[data-l]').forEach(b=>b.onclick=()=>{s.close();openLoan(S.loans.find(x=>x.id===b.dataset.l))});
+  s.el.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>{s.close();openMarket(b.dataset.m,openLoans)});
+}
+
+function openLoan(L){
+  if(!L)return openLoans();
+  const s0=loanStatus(L),n=s0.rows.length;
+  const evLbl=e=>e.type==='rate'?['עדכון ריבית',pct(e.v)]:e.type==='prepay'?[`פירעון מוקדם, ${e.mode==='term'?'קיצור תקופה':'הקטנת החזר'}`,m0(e.v)]:['יתרה לפי הבנק',m0(e.v)];
+  const ev=byD(L.ev).reverse();
+  const next12=s0.rows.slice(s0.k,s0.k+12);
+  const mg=+L.margin||0;
+  const rateRow=`<div class="row"><span class="lbl">ריבית נוכחית</span><span class="num val">${pct(s0.rate)}</span></div>`+(L.track==='prime'?`<div class="row"><span class="lbl">מרווח</span><span class="val">${mg?`פריים ${mg<0?'פחות':'ועוד'} ${pct(Math.abs(mg))}`:'פריים בלבד'}</span></div>`:'');
+  const s=sheet(`<div class="snav"><button class="l" data-close>הלוואות</button><span class="ttl">${esc(L.name)}</span><button class="r" data-edit>עריכה</button></div>
+    <div class="lhero">
+      <div class="cap">${s0.next?'יתרה לסילוק':'ההלוואה נפרעה'}</div>
+      <div class="amount"><small>₪</small>${nf.format(Math.round(s0.bal))}</div>
+      <div class="lbar" style="--c:${(LOAN_KIND[L.kind]||LOAN_KIND.other)[2]}"><i style="width:${(s0.progress*100).toFixed(1)}%"></i></div>
+      <div class="cap" style="margin-top:7px">${Math.round(s0.progress*100)}% מהקרן נפרעו, ${s0.k} מתוך ${n} תשלומים</div>
+    </div>
+    <div class="group">
+      ${s0.next?`<div class="row"><span class="lbl">החזר חודשי</span><span class="num val">${m2(s0.next.pay)}</span></div>
+      <div class="row"><span class="lbl">תשלום הבא</span><span class="val">${fmtD(s0.next.d,{day:'numeric',month:'long'})}</span></div>`:''}
+      ${rateRow}
+      <div class="row"><span class="lbl">מסלול</span><span class="val">${TRACK_LBL[L.track]}, ${L.method==='equal'?'קרן שווה':'שפיצר'}</span></div>
+      ${s0.last?`<div class="row"><span class="lbl">תשלום אחרון</span><span class="val">${fmtD(s0.last.d,{month:'long',year:'numeric'})}</span></div>`:''}
+      ${L.track==='cpi'?`<div class="row"><span class="lbl">הצמדה מצטברת</span><span class="num val">${L.cpiBase>0?pct((s0.factor-1)*100):'אין מדד בסיס'}</span></div>`:''}
+    </div>
+    <div class="gap"></div>
+    <div class="group">
+      <div class="row"><span class="lbl">שולם עד היום</span><span class="num val">${m0(s0.paid)}</span></div>
+      <div class="row"><span class="lbl">מתוכו ריבית</span><span class="num val">${m0(s0.paidInt)}</span></div>
+      ${L.track==='cpi'&&L.cpiBase>0?`<div class="row"><span class="lbl">מתוכו הצמדה</span><span class="num val">${m0(s0.paidIdx)}</span></div>`:''}
+      <div class="row"><span class="lbl">ריבית שנותרה לשלם</span><span class="num val">${m0(s0.intLeft)}</span></div>
+    </div>
+    <div class="ghdr lh"><span>עדכונים</span><button class="addbtn" data-addev>הוספה</button></div>
+    <div class="group">${ev.length?ev.map(e=>{const[a,b]=evLbl(e);return`<button class="row rrow" data-ev="${e.id}"><span class="mid"><span class="t">${a}</span><span class="s">${fmtD(e.d,{day:'numeric',month:'short',year:'numeric'})}</span></span><span class="num val">${b}</span></button>`}).join('')
+      :`<div class="row"><span class="val" style="font-size:15px">שינוי ריבית, פירעון מוקדם או יתרה מעודכנת מדוח הבנק</span></div>`}</div>
+    ${next12.length?`<div class="ghdr">התשלומים הבאים</div><div class="group">${next12.map(payRow).join('')}
+      <button class="row" data-all><span class="lbl" style="color:var(--tint)">כל לוח הסילוקין</span><span class="chev">${UI_ICON.chev}</span></button></div>`:''}
+    ${L.track==='cpi'?`<div class="foot">התחזית מניחה שהמדד יישאר כמו המדד הידוע האחרון.</div>`:L.track==='prime'?`<div class="foot">התחזית מניחה שהפריים לא ישתנה.</div>`:''}`);
+  s.el.querySelector('[data-close]').onclick=()=>{s.close();openLoans()};
+  s.el.querySelector('[data-edit]').onclick=()=>{s.close();editLoan(L)};
+  s.el.querySelector('[data-addev]').onclick=async()=>{
+    const opts=[...(L.track==='prime'?[]:[{label:'עדכון ריבית',val:'rate'}]),{label:'פירעון מוקדם',val:'prepay'},{label:'יתרה לפי דוח הבנק',val:'balance'},...(L.track!=='fixed'?[{label:L.track==='prime'?'עדכון ריבית הפריים':'עדכון המדד הידוע',val:'market'}]:[]),{label:'ביטול',val:null}];
+    const v=await ask('מה השתנה?','',opts);if(!v)return;s.close();
+    if(v==='market')openMarket(L.track,()=>openLoan(L));else editEvent(L,v);
+  };
+  s.el.querySelectorAll('[data-ev]').forEach(b=>b.onclick=async()=>{
+    const e=L.ev.find(x=>x.id===b.dataset.ev);const ok=await ask('למחוק את העדכון?',evLbl(e).join(', '),[{label:'מחיקה',val:true,cls:'danger'},{label:'ביטול',val:false}]);
+    if(!ok)return;L.ev.splice(L.ev.indexOf(e),1);save();s.close();openLoan(L);toast('העדכון נמחק');
+  });
+  const all=s.el.querySelector('[data-all]');if(all)all.onclick=()=>{s.close();openSchedule(L)};
+}
+const payRow=r=>`<div class="row rrow lp"><span class="mid"><span class="t">${fmtD(r.d,{day:'numeric',month:'short',year:'numeric'})}</span><span class="s">ריבית <span class="num">${m0(r.int)}</span></span></span><span class="mid" style="flex:none;align-items:flex-end"><span class="t num">${m2(r.pay)}</span><span class="s">יתרה <span class="num">${m0(r.bal)}</span></span></span></div>`;
+
+function openSchedule(L){
+  const s0=loanStatus(L),yrs=new Map();
+  s0.rows.forEach((r,i)=>{const y=r.d.slice(0,4);if(!yrs.has(y))yrs.set(y,[]);yrs.get(y).push([r,i])});
+  const cy=String(cyear());
+  const s=sheet(`<div class="snav"><button class="l" data-close>חזרה</button><span class="ttl">לוח סילוקין</span><span></span></div>
+    ${[...yrs].map(([y,list])=>{const pay=list.reduce((a,[r])=>a+r.pay,0),int=list.reduce((a,[r])=>a+r.int,0),open=y===cy;
+      return`<details class="yr"${open?' open':''}><summary class="ghdr"><span>${y}</span><span>תשלומים <span class="num">${m0(pay)}</span>, ריבית <span class="num">${m0(int)}</span></span></summary>
+      <div class="group">${list.map(([r,i])=>payRow(r).replace('class="row rrow lp"',`class="row rrow lp${i<s0.k?' paid':''}"`)).join('')}</div></details>`}).join('')}
+    <div class="foot">חישוב משוער לפי הנתונים שהוזנו. השורות האפורות כבר שולמו.</div>`);
+  s.el.querySelector('[data-close]').onclick=()=>{s.close();openLoan(L)};
+}
+
+function loanForm(fields){ // fields: [{k,label,val,ph,unit,mode}]
+  return fields.map(f=>`<label class="row frow"><span class="lbl">${f.label}</span><input class="field" data-f="${f.k}" value="${esc(f.val??'')}" placeholder="${esc(f.ph||'')}" inputmode="${f.mode||'decimal'}" autocomplete="off" enterkeyhint="done">${f.unit?`<span class="unit">${f.unit}</span>`:''}</label>`).join('');
+}
+function shakeEl(x){x.classList.remove('shake');void x.offsetWidth;x.classList.add('shake')}
+
+function editLoan(orig){
+  const L=orig?JSON.parse(JSON.stringify(orig)):{id:uid(),name:'',kind:'bank',track:'fixed',method:'spitzer',amount:'',rate:'',margin:'',cpiBase:'',start:addMonths(today(),1),months:'',ev:[]};
+  const needPrime=()=>L.track==='prime'&&!primeHist().length,needCpi=()=>L.track==='cpi'&&!cpiHist().length;
+  const vals={};
+  const s=sheet(`<div class="snav"><button class="l" data-close>ביטול</button><span class="ttl">${orig?'עריכת הלוואה':'הלוואה חדשה'}</span><button class="r" data-save>שמירה</button></div>
+    <div class="group"><div class="row"><input class="note" data-f="name" placeholder="שם, למשל: משכנתא, מסלול פריים" maxlength="80" enterkeyhint="done"></div></div>
+    <div class="gap" style="height:14px"></div>
+    <nav class="seg" id="lKind">${Object.entries(LOAN_KIND).map(([k,v])=>`<button data-v="${k}">${v[0]}</button>`).join('')}</nav>
+    <div class="ghdr">מסלול</div>
+    <nav class="seg" id="lTrack">${Object.entries(TRACK_LBL).map(([k,v])=>`<button data-v="${k}">${v}</button>`).join('')}</nav>
+    <div class="gap" style="height:14px"></div>
+    <div class="group" id="lFields"></div>
+    <div class="foot" id="lHint"></div>
+    <div class="ghdr">שיטת החזר</div>
+    <nav class="seg" id="lMethod"><button data-v="spitzer">שפיצר (החזר קבוע)</button><button data-v="equal">קרן שווה</button></nav>
+    <div class="gap" style="height:14px"></div>
+    <div class="group"><label class="row"><span class="lbl">תשלום ראשון</span><span class="dateval"><span id="lStartL"></span><input type="date" id="lStart"></span></label></div>
+    <div class="foot" id="lFoot"></div>
+    ${orig?`<div class="gap"></div><div class="group"><button class="row" data-del><span class="danger">מחיקת ההלוואה</span></button></div>`:''}`);
+  const el=s.el,nm=el.querySelector('[data-f="name"]'),stI=el.querySelector('#lStart');
+  nm.value=L.name;stI.value=L.start;
+  const grab=()=>el.querySelectorAll('#lFields [data-f]').forEach(i=>vals[i.dataset.f]=i.value);
+  const fields=()=>{
+    grab();const v=k=>vals[k]!==undefined?vals[k]:(L[k]??'');
+    const f=[{k:'amount',label:'סכום ההלוואה',val:v('amount'),ph:'0',unit:'₪'},{k:'months',label:'מספר תשלומים',val:v('months'),ph:'למשל 240',unit:'חודשים',mode:'numeric'}];
+    if(L.track==='prime'){f.push({k:'margin',label:'מרווח מהפריים',val:v('margin'),ph:'למשל ‎-0.5',unit:'%',mode:'text'});if(needPrime())f.push({k:'prime',label:'ריבית פריים היום',val:v('prime'),ph:'',unit:'%'})}
+    else f.push({k:'rate',label:L.track==='cpi'?'ריבית (ללא הצמדה)':'ריבית שנתית',val:v('rate'),ph:'0',unit:'%'});
+    if(L.track==='cpi'){f.push({k:'cpiBase',label:'מדד בסיס',val:v('cpiBase'),ph:'מהחוזה',unit:''});if(needCpi())f.push({k:'cpiNow',label:'מדד ידוע היום',val:v('cpiNow'),ph:'',unit:''})}
+    el.querySelector('#lFields').innerHTML=loanForm(f);
+    el.querySelectorAll('#lFields [data-f]').forEach(i=>{i.oninput=()=>{vals[i.dataset.f]=i.value;foot()};i.onkeydown=e=>{if(e.key==='Enter')i.blur()}});
+    el.querySelector('#lHint').textContent=L.track==='prime'?'מרווח שלילי (פריים מינוס) נכתב עם מינוס. שינויים בפריים מעדכנים את כל הלוואות הפריים.'
+      :L.track==='cpi'?'מדד הבסיס מופיע בחוזה ההלוואה. בלעדיו ההלוואה תחושב בלי הצמדה.':'אם הריבית משתנה כל כמה שנים, אפשר לעדכן אותה בהמשך.';
+  };
+  const foot=()=>{const m=Math.round(pnum(vals.months));el.querySelector('#lFoot').textContent=m>0?`${monthsText(m)}, תשלום אחרון ב${fmtD(addMonths(L.start,m-1),{month:'long',year:'numeric'})}.`:'התאריך של ההחזר החודשי הראשון.'};
+  const paint=()=>{
+    for(const[id,k]of[['#lKind','kind'],['#lTrack','track'],['#lMethod','method']])el.querySelectorAll(id+' button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===L[k]));
+    el.querySelector('#lStartL').textContent=fmtD(L.start,{day:'numeric',month:'short',year:'numeric'});
+    foot();
+  };
+  fields();paint();
+  el.querySelector('[data-close]').onclick=s.close;
+  el.querySelectorAll('#lKind button').forEach(b=>b.onclick=()=>{L.kind=b.dataset.v;paint()});
+  el.querySelectorAll('#lTrack button').forEach(b=>b.onclick=()=>{L.track=b.dataset.v;fields();paint()});
+  el.querySelectorAll('#lMethod button').forEach(b=>b.onclick=()=>{L.method=b.dataset.v;paint()});
+  stI.onchange=()=>{if(stI.value){L.start=stI.value;paint()}};
+  nm.onkeydown=e=>{if(e.key==='Enter')nm.blur()};
+  el.querySelector('[data-save]').onclick=()=>{
+    grab();const bad=k=>{const i=el.querySelector(`[data-f="${k}"]`);if(i){shakeEl(i.closest('.row'));i.focus()}return false};
+    L.name=nm.value.trim()||(L.kind==='mortgage'?'משכנתא':L.kind==='car'?'הלוואת רכב':'הלוואה');
+    const amount=pnum(vals.amount),months=Math.round(pnum(vals.months));
+    if(!(amount>0))return bad('amount');if(!(months>0&&months<=600))return bad('months');
+    L.amount=amount;L.months=months;
+    if(L.track==='prime'){const m=pnum(vals.margin);L.margin=isFinite(m)?m:0;
+      if(needPrime()){const p=pnum(vals.prime);if(!(p>0&&p<40))return bad('prime');S.meta.primeHist=[{id:uid(),d:'1900-01-01',v:p}]}}
+    else{const r=pnum(vals.rate);if(!(r>=0&&r<60))return bad('rate');L.rate=r}
+    if(L.track==='cpi'){const b=pnum(vals.cpiBase);L.cpiBase=b>0?b:null;
+      if(needCpi()){const c=pnum(vals.cpiNow);if(c>0)S.meta.cpiHist=[{id:uid(),d:today(),v:c}]}}
+    if(orig)Object.assign(orig,L);else S.loans.push(L);
+    save();s.close();openLoan(orig||L);toast('נשמר');
+  };
+  if(orig)el.querySelector('[data-del]').onclick=async()=>{
+    const ok=await ask('למחוק את ההלוואה?','כל העדכונים שלה יימחקו גם הם.',[{label:'מחיקה',val:true,cls:'danger'},{label:'ביטול',val:false}]);
+    if(!ok)return;const i=S.loans.indexOf(orig);S.loans.splice(i,1);save();s.close();openLoans();toast('ההלוואה נמחקה',undo(()=>{S.loans.splice(i,0,orig);save()}));
+  };
+}
+
+function editEvent(L,type){
+  const e={id:uid(),type,d:today(),v:'',mode:'payment'};
+  const ttl={rate:'עדכון ריבית',prepay:'פירעון מוקדם',balance:'יתרה לפי הבנק'}[type];
+  const s=sheet(`<div class="snav"><button class="l" data-close>ביטול</button><span class="ttl">${ttl}</span><button class="r" data-save>שמירה</button></div>
+    <div class="group">${loanForm([{k:'v',label:type==='rate'?'ריבית חדשה':type==='prepay'?'סכום':'היתרה',ph:type==='rate'?pct(loanRateAt(L,today())).replace('%',''):'0',unit:type==='rate'?'%':'₪'}])}
+      <label class="row"><span class="lbl">${type==='rate'?'בתוקף מ־':type==='balance'?'נכון לתאריך':'תאריך'}</span><span class="dateval"><span id="eDL"></span><input type="date" id="eD" max="${today()}"></span></label></div>
+    ${type==='prepay'?`<div class="ghdr">אחרי הפירעון</div><nav class="seg" id="eMode"><button data-v="payment">הקטנת ההחזר</button><button data-v="term">קיצור התקופה</button></nav>`:''}
+    <div class="foot">${type==='balance'?'היתרה מדוח הבנק מחליפה את החישוב מאותו תאריך, והתחזית ממשיכה ממנה. אם התאריך הוא יום תשלום, הכוונה ליתרה אחרי התשלום.':type==='rate'?'הריבית החדשה חלה על התשלומים מהתאריך הזה והלאה.':'אפשר לרשום רק תאריכים שכבר עברו.'}</div>`);
+  const el=s.el,dI=el.querySelector('#eD'),vI=el.querySelector('[data-f="v"]');dI.value=e.d;
+  const paint=()=>{el.querySelector('#eDL').textContent=e.d===today()?'היום':fmtD(e.d,{day:'numeric',month:'short',year:'numeric'});el.querySelectorAll('#eMode button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===e.mode))};
+  paint();setTimeout(()=>vI.focus(),350);
+  dI.onchange=()=>{if(dI.value&&dI.value<=today()){e.d=dI.value;paint()}};
+  el.querySelectorAll('#eMode button').forEach(b=>b.onclick=()=>{e.mode=b.dataset.v;paint()});
+  el.querySelector('[data-close]').onclick=()=>{s.close();openLoan(L)};
+  el.querySelector('[data-save]').onclick=()=>{
+    const v=pnum(vI.value);if(!(type==='rate'?v>=0&&v<60:type==='balance'?v>=0:v>0)){shakeEl(vI.closest('.row'));return}
+    e.v=v;if(type!=='prepay')delete e.mode;(L.ev=L.ev||[]).push(e);save();s.close();openLoan(L);toast('עודכן');
+  };
+}
+
+function openMarket(kind,back){
+  const key=kind==='prime'?'primeHist':'cpiHist',h=byD(S.meta[key]).reverse(),isP=kind==='prime';
+  const s=sheet(`<div class="snav"><button class="l" data-close>חזרה</button><span class="ttl">${isP?'ריבית פריים':'מדד ידוע'}</span><span></span></div>
+    <div class="group">${loanForm([{k:'v',label:isP?'ערך חדש':'מדד חדש',ph:'',unit:isP?'%':''}])}
+      <label class="row"><span class="lbl">בתוקף מ־</span><span class="dateval"><span id="mDL"></span><input type="date" id="mD"></span></label></div>
+    <button class="cta" data-add>עדכון</button>
+    <div class="foot">${isP?'הפריים הוא ריבית בנק ישראל ועוד 1.5%. השינוי חל על כל הלוואות הפריים מהתאריך שנבחר.':'המדד הידוע מתפרסם ב־15 בכל חודש. ההצמדה מחושבת ביחס למדד הבסיס של כל הלוואה.'}</div>
+    ${h.length?`<div class="ghdr">היסטוריה</div><div class="group">${h.map(x=>`<button class="row" data-h="${x.id}"><span class="lbl">${x.d<'1901'?'ערך התחלתי':fmtD(x.d,{day:'numeric',month:'short',year:'numeric'})}</span><span class="num val">${isP?pct(x.v):nf.format(x.v)}</span></button>`).join('')}</div>`:''}`);
+  const el=s.el,dI=el.querySelector('#mD');let d=today();dI.value=d;
+  const paint=()=>el.querySelector('#mDL').textContent=d===today()?'היום':fmtD(d,{day:'numeric',month:'short',year:'numeric'});paint();
+  dI.onchange=()=>{if(dI.value){d=dI.value;paint()}};
+  el.querySelector('[data-close]').onclick=()=>{s.close();back&&back()};
+  el.querySelector('[data-add]').onclick=()=>{const vI=el.querySelector('[data-f="v"]'),v=pnum(vI.value);
+    if(!(v>0&&(!isP||v<40))){shakeEl(vI.closest('.row'));return}
+    (S.meta[key]=S.meta[key]||[]).push({id:uid(),d,v});save();s.close();back&&back();toast('עודכן');};
+  el.querySelectorAll('[data-h]').forEach(b=>b.onclick=async()=>{
+    const arr=S.meta[key],x=arr.find(y=>y.id===b.dataset.h);if(arr.length<2){toast('צריך להשאיר לפחות ערך אחד');return}
+    const ok=await ask('למחוק את הערך?','',[{label:'מחיקה',val:true,cls:'danger'},{label:'ביטול',val:false}]);if(!ok)return;
+    arr.splice(arr.indexOf(x),1);save();s.close();openMarket(kind,back);
+  });
 }
 
 /* ---------- period picker & swipe ---------- */
@@ -1501,6 +1782,7 @@ function wire(){
   $('#fileJson').onchange=e=>{const f=e.target.files[0];e.target.value='';if(f)restoreJSON(f)};
   $('#plabel').onclick=openPicker;
   $('#recBtn').onclick=openRecurring;
+  $('#loanBtn').onclick=openLoans;
   $('#apBtn').onclick=()=>$('#fileAP').click();
   $('#fileAP').onchange=e=>{const f=e.target.files[0];e.target.value='';if(f)syncAP(f)};
   $('#chips').addEventListener('click',e=>{const c=e.target.closest('[data-q]');if(!c||chipLong){chipLong=false;return}quickAdd(QUICK[+c.dataset.q])});
